@@ -1,0 +1,387 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: ScorePredictor
+  description: An API for the Score Predictor Backend
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: API auth using a bearer token
+      bearerFormat: JWT
+  schemas:
+    prediction:
+      type: object
+      required:
+        - homeScore
+        - awayScore
+        - matchId
+        - predictionId
+      properties:
+        points:
+          description: The points earned by the prediction
+          type: integer
+          format: int32
+        homeScore:
+          description: The home team final number of goals
+          type: integer
+          format: int32
+        awayScore:
+          description: The away team final number of goals
+          type: integer
+          format: int32
+        matchId:
+          description: The matchId which is being predicted
+          type: string
+        predictionId:
+          description: Unique predictionId
+          type: string
+    match:
+      type: object
+      required: 
+        - homeTeam
+        - awayTeam
+        - matchId
+      properties:
+        homeTeam:
+          description: Home team
+          type: string
+        awayTeam:
+          description: Away team
+          type: string
+        homeScore:
+          description: The home team final number of goals
+          type: integer
+          format: int32
+        awayScore:
+          description: The away team final number of goals
+          type: integer
+          format: int32
+        matchId:
+          description: Unique matchId
+          type: string
+    league:
+      type: object
+      required:
+        - leagueId
+        - name
+      properties:
+        leagueId:
+          description: Unique league Id
+          type: string
+        name:
+          description: League name
+          type: string
+    leaderboard:
+      type: array
+      items:
+        type: object
+        required:
+          - position
+          - user
+        properties:
+          position:
+            type: integer
+            format: int32
+            minimum: 1
+          user:
+            $ref: '#/components/schemas/user'
+    user:
+      type: object
+      required:
+        - name
+        - userId
+      properties:
+        name: 
+          type: string
+        userId:
+          type: string
+security: 
+  - bearerAuth: []
+paths:
+  /leaderboard:
+    get:
+      description: Returns the leaderboard
+      parameters:
+        - in: query
+          name: leagueId
+          schema: 
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/leaderboard'
+  
+  /prediction:
+    post:
+      tags:
+        - prediction
+      description: Create a prediction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                homeScore:
+                  description: The home team final number of goals
+                  type: integer
+                  format: int32
+                awayScore:
+                  description: The away team final number of goals
+                  type: integer
+                  format: int32
+                matchId:
+                  description: The matchId which is being predicted
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  predictionId:
+                    type: string
+  
+  /match/list:
+    get:
+      tags:
+        - match
+      description: List matches
+      parameters:
+        - in: query
+          name: filterType
+          schema:
+            type: string
+            enum: [live, future, past]
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/match'
+  /match/{matchId}/predictions:
+    get:
+      tags:
+        - match
+      description: Get match predictions
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: leagueId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/prediction'
+  /match/{matchId}/score:
+    post:
+      tags:
+        - match
+      description: Update match score
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                homeScore:
+                  description: The home team final number of goals
+                  type: integer
+                  format: int32
+                awayScore:
+                  description: The away team final number of goals
+                  type: integer
+                  format: int32
+      responses:
+        '200':
+          description: Successful response
+          
+  /auth/login:
+    post:
+      tags:
+        - auth
+      description: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+    
+
+  /user:
+    post:
+      tags:
+        - user
+      security: []
+      description: Register as a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+  /user/{userId}/predictions:
+    get:
+      tags:
+        - user
+      description: Get users predictions
+      parameters:
+        - in: path
+          required: true
+          name: userId
+          schema:
+            type: string
+        - in: query
+          name: leagueId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/prediction'
+  /user/{userId}/points:
+    get:
+      tags:
+        - user
+      description: Get users points
+      parameters:
+        - in: path
+          required: true
+          name: userId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  points:
+                    type: integer
+                    format: int32
+  
+  /league:
+    post:
+      tags:
+        - league
+      description: Create a league
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                leagueName:
+                  type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  leagueId:
+                    type: string
+  /league/{leagueId}:
+    get:
+      tags:
+        - league
+      description: Get a league by Id
+      parameters:
+        - in: path
+          name: leagueId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/league'
+  /league/{leagueId}/join:
+    post:
+      tags:
+        - league
+      description: Join a league
+      parameters:
+        - in: path
+          name: leagueId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+  /league/{leagueId}/leave:
+    post:
+      tags:
+        - league
+      description: Leave a league
+      parameters:
+        - in: path
+          name: leagueId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+  
